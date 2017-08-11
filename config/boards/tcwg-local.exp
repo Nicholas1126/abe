@@ -1,0 +1,16 @@
+load_base_board_description unix
+
+# Compilation timeout 10min
+set_board_info gcc,timeout 600
+# Execution timeout 5min.
+# DJ seems to ignore these and uses default timeout of 300.
+set_board_info timeout 300
+set test_timeout 300
+
+# Unfortunatelly, current DejaGNU can't reliably kill timed-out
+# processes, so wrap them in timeout.
+set_board_info exec_shell "timeout -k 30s 330s"
+
+# Mark this board as one for local testing
+unset_board_info isremote
+set_board_info isremote 0

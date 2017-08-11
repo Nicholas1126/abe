@@ -1,0 +1,113 @@
+# The master configuration file should be here
+
+global env
+if {[info exists env(PREFIX_UNDER_TEST)]} {
+    set prefix "$env(PREFIX_UNDER_TEST)"
+    set flags ""
+    if {[info exists env(FLAGS_UNDER_TEST)]} {
+	set flags "$env(FLAGS_UNDER_TEST)"
+    }
+    if {[info exists env(SYSROOT_UNDER_TEST)]} {
+	set sysroot "$env(SYSROOT_UNDER_TEST)"
+	set flags "${flags} --sysroot=$env(SYSROOT_UNDER_TEST)"
+    }
+
+    set GCC_UNDER_TEST "[set prefix]gcc $flags"
+    set GXX_UNDER_TEST "[set prefix]g++ $flags"
+    set GFORTRAN_UNDER_TEST "[set prefix]gfortran $flags"
+    set OBJC_UNDER_TEST "[set prefix]gcc $flags"
+    set GOC_UNDER_TEST "[set prefix]goc $flags"
+    set GNAT_UNDER_TEST "[set prefix]gnat $flags"
+}
+
+if {[info exists env(SYSROOT_UNDER_TEST)]} {
+    set native ""
+} else {
+    set native "native"
+}
+
+set myname [get_local_hostname]
+set hostname [info hostname]
+
+proc linaro_lab { kind } {
+    global env tcl_platform myname
+
+    if {[info exists env(ABE_TEST_CONTAINER)]} {
+	return "abe-container"
+    }
+
+    case "$tcl_platform(user)" in {
+	{ *buildslave } {
+	    set user "infra"
+	}
+	default {
+	    set user "dev"
+	}
+    }
+
+    case "$myname" in {
+	{ ex40-* } {
+	    set lab "hetzner"
+	}
+	default {
+	    set lab "tcwglab"
+	}
+    }
+
+    return "$user-$lab-$kind"
+}
+
+case "$target_triplet" in { 
+    { "arm-*linux-gnueabi*" "armv[78]l-*linux-gnueabi*" "aarch64-*linux*" } {
+	case "$native$myname" in {
+	    { native* } {
+		set target_list { "tcwg-local" }
+	    }
+	    default {
+		if { [info exists env(SCHROOT_TEST)]
+		     && $env(SCHROOT_TEST) == "yes" } {
+		    set target_list [linaro_lab armv8]
+		} else {
+		    set target_list { "qemu" }
+		}
+            }
+	}
+    }
+    { "arm-*-eabi*" } {
+	global SIM
+	# CPU and sysroot are set through the environment
+	set SIM "qemu-arm"
+	set target_list { "arm-qemu" } 
+    }
+    { "armeb-*-eabi*" } {
+	global SIM
+	# CPU and sysroot are set through the environment
+	set SIM "qemu-armeb"
+	set target_list { "arm-qemu" } 
+    }
+    { "aarch64*-*elf*" } {
+	set target_list { "v8model" }
+	set env(FOUNDATION_MODEL) "/home/tcwg-buildslave/snapshots-ref/Foundation_Platformpkg/models/Linux64_GCC-4.7/Foundation_Platform"
+    }
+    { "x86_64-*linux-gnu" "i686-*linux-gnu" } {
+	case "$native$myname" in {
+	    { native* } {
+		set target_list { "tcwg-local" }
+	    }
+	    default {
+		if { [info exists env(SCHROOT_TEST)]
+		     && $env(SCHROOT_TEST) == "yes" } {
+		    set target_list [linaro_lab x86_64]
+		} else {
+		    set target_list { "tcwg-local" }
+		}
+	    }
+	}
+    }
+    { "*linux-gnu*" } {
+	set target_list { "qemu" }
+    }
+    default {
+	puts "No target hardware for $target_triplet"
+    }
+}

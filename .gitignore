@@ -1,0 +1,10 @@
+configure.lineno
+autom4te.cache/
+*~
+x
+xx
+*.data
+*.cmd
+NOTES
+TAGS
+*.org

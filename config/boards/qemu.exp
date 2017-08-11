@@ -1,0 +1,12 @@
+load_generic_config tcwg-local
+
+set_board_info is_simulator 1
+
+set qemu_arch "[lindex [split $target_triplet -] 0]"
+case "$qemu_arch" in {
+    { armv[78]l } {
+	set qemu_arch "arm"
+    }
+}
+
+set board_info($board,exec_shell) "[board_info $board exec_shell] setarch x86_64 -R qemu-$qemu_arch -cpu any -R 0 -L $sysroot"
